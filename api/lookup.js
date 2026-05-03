@@ -22,29 +22,27 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1. Fetch from Truecaller (with safety catch)
-        let truecallerName = "Not Found in Truecaller";
+        // 1. Fetch from Truecaller
+        let truecallerName = "N/A";
         try {
-            const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`, { timeout: 5000 });
-            truecallerName = truecallerRes.data?.results?.name || "Not Found in Truecaller";
+            const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`, { timeout: 4000 });
+            truecallerName = truecallerRes.data?.results?.name || "N/A";
         } catch (e) {
-            console.log("Truecaller API Offline");
+            truecallerName = "API Offline";
         }
 
-        // 2. Fetch from Sim Data (with safety catch)
+        // 2. Fetch from Sim Data
         let allSimRecords = [];
         try {
-            const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`, { timeout: 5000 });
+            const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`, { timeout: 4000 });
             allSimRecords = simDataRes.data?.data || [];
         } catch (e) {
-            console.log("Sim Data API Offline");
+            console.log("Sim Data Offline");
         }
 
-        // 3. Logic to handle "Not Found" cases
+        // 3. Process Logic
         let finalResults = [];
-
         if (allSimRecords.length > 0) {
-            // If Sim Data has records, map them and attach the Truecaller name
             finalResults = allSimRecords.map(record => ({
                 Truecaller_Name: truecallerName,
                 Owner_Name: record.name || "N/A",
@@ -53,31 +51,29 @@ export default async function handler(req, res) {
                 Address: record.address || "N/A",
             }));
         } else {
-            // If Sim Data is empty but Truecaller has a name, show at least one record
             finalResults.push({
                 Truecaller_Name: truecallerName,
-                Owner_Name: "No Record in Sim Database",
+                Owner_Name: "Record Not Found",
                 Number: number,
                 CNIC: "N/A",
                 Address: "N/A"
             });
         }
 
-        // 4. Final Clean Response
         const responseData = {
             Status: "Success",
-            Total_Records: finalResults.length,
-            Results: finalResults,
-            WhatsApp_Group: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
+            Total: finalResults.length,
+            Data: finalResults,
+            WhatsApp: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
             Developed_By: "Ramzan Ahsan"
         };
 
-        res.status(200).json(responseData);
+        // --- CLEAR VIEW FIX ---
+        // Sending the JSON with 2-space indentation so it looks neat in the browser
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(200).send(JSON.stringify(responseData, null, 2));
 
     } catch (error) {
-        res.status(500).json({ 
-            error: "System Error", 
-            Developed_By: "Ramzan Ahsan" 
-        });
+        res.status(500).json({ error: "Server Error", Developed_By: "Ramzan Ahsan" });
     }
 }
