@@ -25,22 +25,32 @@ export default async function handler(req, res) {
         // 1. Fetch from Truecaller
         let truecallerName = "N/A";
         try {
-            const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`, { timeout: 4000 });
-            truecallerName = truecallerRes.data?.results?.name || "N/A";
+            // Increased timeout to 8 seconds and added a common User-Agent
+            const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`, { 
+                timeout: 8000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            
+            // Check for data at the exact path: results.name
+            if (truecallerRes.data && truecallerRes.data.results) {
+                truecallerName = truecallerRes.data.results.name || "No Name Found";
+            }
         } catch (e) {
-            truecallerName = "API Offline";
+            // Log the specific error to your Vercel console for debugging
+            console.error("Truecaller Error:", e.message);
+            truecallerName = "Connection Error";
         }
 
         // 2. Fetch from Sim Data
         let allSimRecords = [];
         try {
-            const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`, { timeout: 4000 });
+            const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`, { timeout: 8000 });
             allSimRecords = simDataRes.data?.data || [];
         } catch (e) {
-            console.log("Sim Data Offline");
+            console.error("Sim Data Error:", e.message);
         }
 
-        // 3. Process Logic
+        // 3. Process Results
         let finalResults = [];
         if (allSimRecords.length > 0) {
             finalResults = allSimRecords.map(record => ({
@@ -53,7 +63,7 @@ export default async function handler(req, res) {
         } else {
             finalResults.push({
                 Truecaller_Name: truecallerName,
-                Owner_Name: "Record Not Found",
+                Owner_Name: "No Database Record Found",
                 Number: number,
                 CNIC: "N/A",
                 Address: "N/A"
@@ -68,8 +78,7 @@ export default async function handler(req, res) {
             Developed_By: "Ramzan Ahsan"
         };
 
-        // --- CLEAR VIEW FIX ---
-        // Sending the JSON with 2-space indentation so it looks neat in the browser
+        // Send Indented JSON for clear view
         res.setHeader('Content-Type', 'application/json');
         return res.status(200).send(JSON.stringify(responseData, null, 2));
 
