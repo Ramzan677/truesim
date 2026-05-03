@@ -74,7 +74,7 @@ export default async function handler(req, res) {
             Status: "Success",
             Total: finalResults.length,
             Data: finalResults,
-            WhatsApp: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
+            Join_WhatsApp: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
             Developed_By: "Ramzan Ahsan"
         };
 
