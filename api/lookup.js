@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 export default async function handler(req, res) {
-    // Enable CORS for all domains
+    // --- CORS Headers ---
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -23,23 +23,27 @@ export default async function handler(req, res) {
 
     try {
         // 1. Fetch from Truecaller API
-        // Extracting only the 'name' from the results object
         const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`);
         const truecallerName = truecallerRes.data?.results?.name || "N/A";
 
         // 2. Fetch from Sim Data API
-        // Extracting data from the first index of the 'data' array
         const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`);
-        const simInfo = simDataRes.data?.data?.[0] || {};
+        const allSimRecords = simDataRes.data?.data || [];
 
-        // 3. Merge and Format Response
+        // 3. Process all records from Sim Data API
+        const formattedRecords = allSimRecords.map(record => ({
+            Truecaller_Name: truecallerName,
+            Owner_Name: record.name || "N/A",
+            Number: record.number || number,
+            CNIC: record.cnic || "N/A",
+            Address: record.address || "N/A",
+        }));
+
+        // 4. Final Response Structure
         const responseData = {
             Status: "Success",
-            Truecaller_Name: truecallerName,
-            Owner_Name: simInfo.name || "N/A",
-            Number: number,
-            CNIC: simInfo.cnic || "N/A",
-            Address: simInfo.address || "N/A",
+            Total_Records: formattedRecords.length,
+            Results: formattedRecords,
             WhatsApp_Group: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
             Developed_By: "Ramzan Ahsan"
         };
