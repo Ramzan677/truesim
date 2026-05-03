@@ -1,21 +1,19 @@
 const axios = require('axios');
 
 export default async function handler(req, res) {
-    // --- CORS Headers Start ---
+    // Enable CORS for all domains
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Allows all domains
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     );
 
-    // Handle preflight request (OPTIONS)
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
-    // --- CORS Headers End ---
 
     const { number } = req.query;
 
@@ -25,21 +23,23 @@ export default async function handler(req, res) {
 
     try {
         // 1. Fetch from Truecaller API
+        // Extracting only the 'name' from the results object
         const truecallerRes = await axios.get(`https://sbsakib.eu.cc/apis/truecaller?key=Test&number1=${number}`);
-        const truecallerName = truecallerRes.data?.name || "Not Found";
+        const truecallerName = truecallerRes.data?.results?.name || "N/A";
 
         // 2. Fetch from Sim Data API
+        // Extracting data from the first index of the 'data' array
         const simDataRes = await axios.get(`https://ramzan-simdata.deno.dev/?number=${number}`);
-        const simData = simDataRes.data || {};
+        const simInfo = simDataRes.data?.data?.[0] || {};
 
-        // 3. Construct Clean Response
+        // 3. Merge and Format Response
         const responseData = {
             Status: "Success",
-            Name: truecallerName !== "Not Found" ? truecallerName : (simData.name || "N/A"),
+            Truecaller_Name: truecallerName,
+            Owner_Name: simInfo.name || "N/A",
             Number: number,
-            CNIC: simData.cnic || "N/A",
-            Address: simData.adress || "N/A",
-            Network: simData.network || "N/A",
+            CNIC: simInfo.cnic || "N/A",
+            Address: simInfo.address || "N/A",
             WhatsApp_Group: "https://chat.whatsapp.com/LoafyPWMGOv88oElxdwOB8",
             Developed_By: "Ramzan Ahsan"
         };
@@ -48,8 +48,8 @@ export default async function handler(req, res) {
 
     } catch (error) {
         res.status(500).json({ 
-            error: "API Connection Error",
-            Developed_By: "Ramzan Ahsan"
+            error: "Connection Error", 
+            Developed_By: "Ramzan Ahsan" 
         });
     }
 }
